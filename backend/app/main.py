@@ -134,11 +134,17 @@ def health_check():
 # Analyze Transaction
 # ==================================================
 
+from .schemas import TransactionRequest
+
+
 @app.post("/analyze")
-def analyze_transaction(
-    transaction: TransactionRequest,
-    db: Session = Depends(get_db)
-):
+def analyze_transaction(transaction: TransactionRequest):
+
+    result = recovery_agent.analyze_transaction(
+        transaction.model_dump()
+    )
+
+    return result
 
     try:
 

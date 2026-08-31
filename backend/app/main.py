@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-from typing import Optional
+
 
 from .database import Base, engine, get_db
 from . import models
@@ -134,17 +134,15 @@ def health_check():
 # Analyze Transaction
 # ==================================================
 
-from .schemas import TransactionRequest
-
+# ==================================================
+# Analyze Transaction
+# ==================================================
 
 @app.post("/analyze")
-def analyze_transaction(transaction: TransactionRequest):
-
-    result = recovery_agent.analyze_transaction(
-        transaction.model_dump()
-    )
-
-    return result
+def analyze_transaction(
+    transaction: TransactionRequest,
+    db: Session = Depends(get_db)
+):
 
     try:
 
@@ -182,12 +180,14 @@ def analyze_transaction(transaction: TransactionRequest):
         # Check if transaction already exists
         # ------------------------------------------
 
-        existing_case = db.query(
-            models.RecoveryCase
-        ).filter(
-            models.RecoveryCase.case_id
-            == transaction.transaction_id
-        ).first()
+        existing_case = (
+            db.query(models.RecoveryCase)
+            .filter(
+                models.RecoveryCase.case_id
+                == transaction.transaction_id
+            )
+            .first()
+        )
 
         # ------------------------------------------
         # Create or update database record
@@ -228,12 +228,12 @@ def analyze_transaction(transaction: TransactionRequest):
         else:
             case.action_status = "PENDING"
 
+        # ------------------------------------------
+        # Save changes
+        # ------------------------------------------
+
         db.commit()
         db.refresh(case)
-
-        # ------------------------------------------
-        # Return result
-        # ------------------------------------------
 
         return result
 

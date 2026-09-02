@@ -1,17 +1,13 @@
 from fastapi import FastAPI, HTTPException, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
-
-
+from datetime import datetime
 from .database import Base, engine, get_db
 from . import models
-
 from services.recovery_agent import RecoveryAgent
 
-
-# ==================================================
 # FastAPI Application
-# ==================================================
+
 
 app = FastAPI(
     title="RecoverAI API",
@@ -19,17 +15,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-
-# ==================================================
-# Recovery Agent
-# ==================================================
-
 recovery_agent = RecoveryAgent()
-
-
-# ==================================================
-# Request Schema
-# ==================================================
 
 class TransactionRequest(BaseModel):
 
@@ -103,10 +89,6 @@ class TransactionRequest(BaseModel):
     )
 
 
-# ==================================================
-# Root Endpoint
-# ==================================================
-
 @app.get("/")
 def root():
 
@@ -117,10 +99,6 @@ def root():
     }
 
 
-# ==================================================
-# Health Check
-# ==================================================
-
 @app.get("/health")
 def health_check():
 
@@ -128,15 +106,7 @@ def health_check():
         "status": "healthy",
         "service": "recoverai-backend"
     }
-
-
-# ==================================================
 # Analyze Transaction
-# ==================================================
-
-# ==================================================
-# Analyze Transaction
-# ==================================================
 
 @app.post("/analyze")
 def analyze_transaction(
@@ -145,10 +115,6 @@ def analyze_transaction(
 ):
 
     try:
-
-        # ------------------------------------------
-        # Run Recovery Agent
-        # ------------------------------------------
 
         result = recovery_agent.analyze_transaction(
             transaction.model_dump()
@@ -175,11 +141,6 @@ def analyze_transaction(
             "reason",
             ""
         )
-
-        # ------------------------------------------
-        # Check if transaction already exists
-        # ------------------------------------------
-
         existing_case = (
             db.query(models.RecoveryCase)
             .filter(
@@ -188,10 +149,7 @@ def analyze_transaction(
             )
             .first()
         )
-
-        # ------------------------------------------
         # Create or update database record
-        # ------------------------------------------
 
         if existing_case:
 
@@ -215,10 +173,6 @@ def analyze_transaction(
 
             db.add(case)
 
-        # ------------------------------------------
-        # Store AI analysis
-        # ------------------------------------------
-
         case.recovery_probability = recovery_probability
         case.recommended_action = action
         case.policy_decision = reason
@@ -227,10 +181,6 @@ def analyze_transaction(
             case.action_status = "RECOMMENDED"
         else:
             case.action_status = "PENDING"
-
-        # ------------------------------------------
-        # Save changes
-        # ------------------------------------------
 
         db.commit()
         db.refresh(case)
@@ -246,10 +196,6 @@ def analyze_transaction(
             detail=f"Transaction analysis failed: {str(e)}"
         )
 
-
-# ==================================================
-# Get All Transactions
-# ==================================================
 
 @app.get("/transactions")
 def get_transactions(
@@ -281,11 +227,6 @@ def get_transactions(
             for case in cases
         ]
     }
-
-
-# ==================================================
-# Get Single Transaction
-# ==================================================
 
 @app.get("/transactions/{case_id}")
 def get_transaction(
@@ -330,9 +271,73 @@ def get_transaction(
     }
 
 
-# ==================================================
+@app.post("/recover/{case_id}")
+def execute_recovery(
+    case_id: str,
+    db: Session = Depends(get_db)
+):
+
+    try:
+        # Find recovery case
+        case = (
+            db.query(models.RecoveryCase)
+            .filter(
+                models.RecoveryCase.case_id == case_id
+            )
+            .first()
+        )
+
+        if not case:
+
+            raise HTTPException(
+                status_code=404,
+                detail="Recovery case not found"
+            )
+
+
+        if case.action_status != "RECOMMENDED":
+
+            raise HTTPException(
+                status_code=400,
+                detail="Recovery action is not recommended for this transaction"
+            )
+
+        case.amount_recovered = case.amount
+
+        case.action_status = "EXECUTED"
+
+        case.resolved_at = datetime.utcnow()
+
+        
+        # Save recovery result
+
+        db.commit()
+        db.refresh(case)
+
+        return {
+            "success": True,
+            "case_id": case.case_id,
+            "action": case.recommended_action,
+            "status": case.action_status,
+            "amount_recovered": case.amount_recovered,
+            "message": "Recovery action executed successfully"
+        }
+
+    except HTTPException:
+
+        raise
+
+    except Exception as e:
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail=f"Recovery execution failed: {str(e)}"
+        )
+
 # Recovery Statistics
-# ==================================================
+
 
 @app.get("/stats")
 def get_stats(
@@ -395,10 +400,7 @@ def get_stats(
         "recommended_actions": recommended_actions
     }
 
-
-# ==================================================
-# Database Initialization
-# ==================================================
+# Database 
 
 Base.metadata.create_all(
     bind=engine

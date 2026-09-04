@@ -12,6 +12,7 @@ import {
   XCircle,
   ChevronRight,
   BarChart3,
+  ClipboardList,
 } from "lucide-react";
 
 const API_URL = "http://127.0.0.1:8000";
@@ -68,6 +69,15 @@ function App() {
             <Brain size={19} />
             AI Analysis
           </div>
+          <div
+  className={`nav-item ${
+    activePage === "audit" ? "active" : ""
+  }`}
+  onClick={() => setActivePage("audit")}
+>
+  <ClipboardList size={19} />
+  Audit Log
+</div>
 
         </nav>
 
@@ -85,17 +95,20 @@ function App() {
       <main className="main">
 
         {activePage === "dashboard" && (
-          <Dashboard />
-        )}
+  <Dashboard />
+)}
 
-        {activePage === "transactions" && (
-          <Transactions />
-        )}
+{activePage === "transactions" && (
+  <Transactions />
+)}
 
-        {activePage === "analysis" && (
-          <AIAnalysis />
-        )}
+{activePage === "analysis" && (
+  <AIAnalysis />
+)}
 
+{activePage === "audit" && (
+  <AuditLog />
+)}
       </main>
 
     </div>
@@ -125,7 +138,7 @@ function Dashboard() {
       }
 
       const data = await response.json();
-
+      
       setStats(data);
 
     } catch (error) {
@@ -207,11 +220,13 @@ function Dashboard() {
         />
 
         <StatCard
-          title="Recommended Actions"
-          value={stats?.recommended_actions ?? 0}
-          icon={<AlertCircle size={20} />}
-          loading={loading}
-        />
+  title="Recovered Revenue"
+  value={`₹${(
+    stats?.total_amount_recovered ?? 0
+  ).toLocaleString()}`}
+  icon={<ArrowUpRight size={20} />}
+  loading={loading}
+/>
 
       </section>
 
@@ -227,12 +242,12 @@ function Dashboard() {
             <div>
 
               <h3>
-                Recovery Overview
-              </h3>
+  Recovery Performance
+</h3>
 
-              <p>
-                Current recovery opportunities
-              </p>
+<p>
+  AI recovery decisions and outcomes
+</p>
 
             </div>
 
@@ -267,7 +282,7 @@ function Dashboard() {
               <div className="metric-row">
 
                 <span>
-                  High Recovery Opportunities
+                  High Recovery Cases
                 </span>
 
                 <strong>
@@ -372,9 +387,6 @@ function Dashboard() {
 }
 
 
-/* =========================================================
-   TRANSACTION DETAILS
-========================================================= */
 /* =========================================================
    TRANSACTIONS
 ========================================================= */
@@ -1112,14 +1124,13 @@ const [error, setError] =
 
       setExecutionResult(data);
 
-      setResult((prev) => ({
-        ...prev,
-        decision: {
-          ...prev.decision,
-          should_execute: false,
-        },
-      }));
-
+setResult((prev) => ({
+  ...prev,
+  decision: {
+    ...prev.decision,
+    should_execute: false,
+  },
+}));
     } catch (error) {
       console.error(error);
       setError(error.message);
@@ -1136,7 +1147,9 @@ const [error, setError] =
   const action = result?.decision?.action || "manual_review";
 
   const shouldExecute =
-    result?.decision?.should_execute || false;
+  result?.decision?.should_execute === true;
+   
+    
 
   return (
     <>
@@ -1440,29 +1453,51 @@ const [error, setError] =
 
               {/* ================= EXECUTION STATUS ================= */}
 
-              <div
-                className={
-                  shouldExecute
-                    ? "result-status success"
-                    : "result-status pending"
-                }
-              >
+              {/* ================= EXECUTION STATUS ================= */}
 
-                {shouldExecute ? (
-                  <>
-                    <CheckCircle size={20} />
+<div
+  className={
+    executionResult
+      ? "result-status success"
+      : shouldExecute
+      ? "result-status success"
+      : "result-status pending"
+  }
+>
+  {executionResult ? (
+    <>
+      <CheckCircle size={20} />
+      <div>
+        <strong>Recovery completed successfully</strong>
+        <span>
+          The recommended recovery action has been executed successfully.
+        </span>
+      </div>
+    </>
+  ) : shouldExecute ? (
+    <>
+      <CheckCircle size={20} />
+      <div>
+        <strong>Action recommended for execution</strong>
+        <span>
+          The decision engine considers this transaction suitable for automated recovery.
+        </span>
+      </div>
+    </>
+  ) : (
+    <>
+      <Clock size={20} />
+      <div>
+        <strong>Manual review required</strong>
+        <span>
+          The transaction should remain pending until further review.
+        </span>
+      </div>
+    </>
+  )}
+</div>
 
-                    <div>
-                      <strong>
-                        Action recommended for execution
-                      </strong>
-
-                      <span>
-                        The decision engine considers this
-                        transaction suitable for automated recovery.
-                      </span>
-                    </div>
-                    {result.decision?.should_execute && !executionResult && (
+{shouldExecute && !executionResult && (
   <button
     className="execute-recovery-btn"
     onClick={executeRecovery}
@@ -1482,76 +1517,8 @@ const [error, setError] =
   </button>
 )}
 
-{executionResult && (
-  <div className="execution-success">
-    <div className="execution-success-icon">
-      <CheckCircle size={22} />
-    </div>
-
-    <div>
-      <strong>Recovery Executed Successfully</strong>
-
-      <p>
-        {executionResult.action} completed for{" "}
-        {executionResult.case_id}.
-      </p>
-
-      <div className="execution-amount">
-        Amount Recovered: ₹
-        {Number(
-          executionResult.amount_recovered || 0
-        ).toLocaleString()}
-      </div>
-
-      <div className="execution-status">
-        Status: {executionResult.status}
-      </div>
-    </div>
-  </div>
-)}
-                  </>
-                ) : (
-                  <>
-                    <Clock size={20} />
-
-                    <div>
-                      <strong>
-                        Manual review required
-                      </strong>
-
-                      <span>
-                        The transaction should remain pending
-                        until further review.
-                      </span>
-                    </div>
-                  </>
-                )}
-
-              </div>
-              {result.decision?.should_execute && !executionResult && (
-  <button
-    className="execute-recovery-btn"
-    onClick={executeRecovery}
-    disabled={executing}
-  >
-    {executing ? (
-      <>
-        <RefreshCw
-          size={18}
-          className="spin"
-        />
-        Executing Recovery...
-      </>
-    ) : (
-      <>
-        <CheckCircle size={18} />
-        Execute Recovery
-      </>
-    )}
-  </button>
-)}
-
-{executionResult && (
+{executionResult &&
+ executionResult.case_id === result?.transaction_id && (
   <div className="execution-success">
     <div className="execution-success-icon">
       <CheckCircle size={22} />
@@ -1761,7 +1728,195 @@ function Detail({
   );
 
 }
+/* =========================================================
+   AUDIT LOG
+========================================================= */
 
+function AuditLog() {
+  const [logs, setLogs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const fetchAuditLog = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetch(`${API_URL}/audit-log`);
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch audit log");
+      }
+
+      const data = await response.json();
+
+      setLogs(data.audit_log || []);
+    } catch (err) {
+      console.error("Error fetching audit log:", err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAuditLog();
+  }, []);
+
+  return (
+    <>
+      {/* PAGE HEADER */}
+
+      <header className="topbar">
+        <div>
+          <p className="eyebrow">DECISION HISTORY</p>
+
+          <h1>Audit Log</h1>
+
+          <p className="subtitle">
+            Track AI decisions, recovery actions, and outcomes.
+          </p>
+        </div>
+
+        <button
+          className="refresh-btn"
+          onClick={fetchAuditLog}
+          disabled={loading}
+        >
+          <RefreshCw
+            size={17}
+            className={loading ? "spin" : ""}
+          />
+          Refresh
+        </button>
+      </header>
+
+      {/* AUDIT PANEL */}
+
+      <div className="panel transaction-panel">
+
+        <div className="transaction-toolbar">
+          <div>
+            <h3>Recovery Decision History</h3>
+            <p className="subtitle">
+              Complete record of RecoverAI recovery decisions.
+            </p>
+          </div>
+
+          <div className="transaction-count">
+            {logs.length} records
+          </div>
+        </div>
+
+        {error && (
+          <div className="error-message">
+            <XCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {loading ? (
+          <div className="empty-state">
+            Loading audit records...
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="empty-state">
+            <ClipboardList size={35} />
+
+            <h3>No audit records</h3>
+
+            <p>
+              Recovery decisions will appear here.
+            </p>
+          </div>
+        ) : (
+          <div className="transaction-table">
+
+            {/* HEADER */}
+
+            <div className="table-header">
+              <span>Transaction</span>
+              <span>Amount</span>
+              <span>Recovery</span>
+              <span>Action</span>
+              <span>Status</span>
+              <span>Recovered</span>
+              <span></span>
+            </div>
+
+            {/* ROWS */}
+
+            {logs.map((log) => (
+              <div
+                className="table-row"
+                key={log.case_id}
+              >
+                <span className="transaction-id">
+                  {log.case_id}
+                </span>
+
+                <span>
+                  ₹
+                  {Number(
+                    log.amount || 0
+                  ).toLocaleString()}
+                </span>
+
+                <span>
+                  <strong
+                    className={
+                      Number(
+                        log.recovery_probability || 0
+                      ) >= 0.7
+                        ? "probability-high"
+                        : "probability-low"
+                    }
+                  >
+                    {(
+                      Number(
+                        log.recovery_probability || 0
+                      ) * 100
+                    ).toFixed(1)}
+                    %
+                  </strong>
+                </span>
+
+                <span>
+                  {String(
+                    log.recommended_action ||
+                      "manual_review"
+                  ).replaceAll("_", " ")}
+                </span>
+
+                <span>
+                  <StatusBadge
+                    status={log.action_status}
+                  />
+                </span>
+
+                <span>
+                  ₹
+                  {Number(
+                    log.amount_recovered || 0
+                  ).toLocaleString()}
+                </span>
+
+                <span>
+                  <ChevronRight size={17} />
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+      </div>
+
+      <footer>
+        RecoverAI • AI-powered revenue recovery system
+      </footer>
+    </>
+  );
+}
 
 function StatusBadge({
   status,

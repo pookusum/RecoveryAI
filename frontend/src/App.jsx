@@ -373,26 +373,25 @@ function Dashboard() {
 
 
 /* =========================================================
+   TRANSACTION DETAILS
+========================================================= */
+/* =========================================================
    TRANSACTIONS
 ========================================================= */
 
 function Transactions() {
-
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [selectedTransaction, setSelectedTransaction] =
-    useState(null);
-
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
 
   const fetchTransactions = async () => {
-
     try {
-
       setLoading(true);
+      setError("");
 
-      const response =
-        await fetch(`${API_URL}/transactions`);
+      const response = await fetch(`${API_URL}/transactions`);
 
       if (!response.ok) {
         throw new Error("Failed to fetch transactions");
@@ -401,100 +400,99 @@ function Transactions() {
       const data = await response.json();
 
       setTransactions(data.transactions || []);
-
-    } catch (error) {
-
-      console.error(error);
-
+    } catch (err) {
+      console.error("Error fetching transactions:", err);
+      setError(err.message);
     } finally {
-
       setLoading(false);
-
     }
-
   };
-
 
   useEffect(() => {
     fetchTransactions();
   }, []);
 
+  const filteredTransactions = transactions.filter((transaction) => {
+    const caseId = String(transaction.case_id || "").toLowerCase();
+    const customerId = String(transaction.customer_id || "").toLowerCase();
+    const failureReason = String(
+      transaction.failure_reason || ""
+    ).toLowerCase();
 
-  const filteredTransactions =
-    transactions.filter((transaction) =>
-      transaction.case_id
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      transaction.customer_id
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      transaction.failure_reason
-        .toLowerCase()
-        .includes(search.toLowerCase())
+    const searchText = search.toLowerCase();
+
+    return (
+      caseId.includes(searchText) ||
+      customerId.includes(searchText) ||
+      failureReason.includes(searchText)
     );
-
+  });
 
   return (
-
     <>
+      {/* PAGE HEADER */}
 
       <header className="topbar">
-
         <div>
+          <p className="eyebrow">TRANSACTION MANAGEMENT</p>
 
-          <p className="eyebrow">
-            TRANSACTION MANAGEMENT
-          </p>
-
-          <h1>
-            Transactions
-          </h1>
+          <h1>Transactions</h1>
 
           <p className="subtitle">
-            Monitor failed payments and recovery opportunities.
+            Monitor failed payments and recovery decisions.
           </p>
-
         </div>
 
         <button
           className="refresh-btn"
           onClick={fetchTransactions}
+          disabled={loading}
         >
-          <RefreshCw size={17} />
+          <RefreshCw
+            size={17}
+            className={loading ? "spin" : ""}
+          />
           Refresh
         </button>
-
       </header>
 
+      {/* TRANSACTION PANEL */}
 
       <div className="panel transaction-panel">
+
+        {/* TOOLBAR */}
 
         <div className="transaction-toolbar">
 
           <div className="search-box">
-
             <Search size={18} />
 
             <input
               type="text"
               placeholder="Search transaction..."
               value={search}
-              onChange={(e) =>
-                setSearch(e.target.value)
-              }
+              onChange={(e) => setSearch(e.target.value)}
             />
-
           </div>
 
           <div className="transaction-count">
-            {transactions.length} transactions
+            {filteredTransactions.length} transactions
           </div>
 
         </div>
 
+        {/* ERROR */}
+
+        {error && (
+          <div className="error-message">
+            <XCircle size={18} />
+            <span>{error}</span>
+          </div>
+        )}
+
+        {/* LOADING */}
 
         {loading ? (
-
           <div className="empty-state">
             Loading transactions...
           </div>
@@ -502,15 +500,22 @@ function Transactions() {
         ) : filteredTransactions.length === 0 ? (
 
           <div className="empty-state">
-            No transactions found.
+            <Activity size={35} />
+
+            <h3>No transactions found</h3>
+
+            <p>
+              There are currently no transactions matching your search.
+            </p>
           </div>
 
         ) : (
 
           <div className="transaction-table">
 
-            <div className="table-header">
+            {/* HEADER */}
 
+            <div className="table-header">
               <span>Transaction</span>
               <span>Customer</span>
               <span>Amount</span>
@@ -518,77 +523,76 @@ function Transactions() {
               <span>Action</span>
               <span>Status</span>
               <span></span>
-
             </div>
 
+            {/* ROWS */}
 
-            {filteredTransactions.map(
-              (transaction) => (
+            {filteredTransactions.map((transaction) => (
 
-                <div
-                  className="table-row"
-                  key={transaction.case_id}
-                >
+              <div
+                className="table-row"
+                key={transaction.case_id}
+              >
 
-                  <span className="transaction-id">
-                    {transaction.case_id}
-                  </span>
+                <span className="transaction-id">
+                  {transaction.case_id}
+                </span>
 
-                  <span>
-                    {transaction.customer_id}
-                  </span>
+                <span>
+                  {transaction.customer_id}
+                </span>
 
-                  <span>
-                    ₹{Number(
-                      transaction.amount
-                    ).toLocaleString()}
-                  </span>
+                <span>
+                  ₹
+                  {Number(
+                    transaction.amount || 0
+                  ).toLocaleString()}
+                </span>
 
-                  <span>
-
-                    <strong
-                      className={
-                        transaction.recovery_probability >= 0.7
-                          ? "probability-high"
-                          : "probability-low"
-                      }
-                    >
-                      {(
-                        transaction.recovery_probability * 100
-                      ).toFixed(1)}%
-                    </strong>
-
-                  </span>
-
-                  <span>
-                    {transaction.recommended_action}
-                  </span>
-
-                  <span>
-
-                    <StatusBadge
-                      status={
-                        transaction.action_status
-                      }
-                    />
-
-                  </span>
-
-                  <button
-                    className="view-btn"
-                    onClick={() =>
-                      setSelectedTransaction(
-                        transaction.case_id
-                      )
+                <span>
+                  <strong
+                    className={
+                      Number(transaction.recovery_probability || 0) >= 0.7
+                        ? "probability-high"
+                        : "probability-low"
                     }
                   >
-                    <ChevronRight size={17} />
-                  </button>
+                    {(
+                      Number(
+                        transaction.recovery_probability || 0
+                      ) * 100
+                    ).toFixed(1)}
+                    %
+                  </strong>
+                </span>
 
-                </div>
+                <span>
+                  {String(
+                    transaction.recommended_action || "manual_review"
+                  ).replaceAll("_", " ")}
+                </span>
 
-              )
-            )}
+                <span>
+                  <StatusBadge
+                    status={transaction.action_status}
+                  />
+                </span>
+
+                <button
+                  className="view-btn"
+                  onClick={() =>
+                    setSelectedTransaction(
+                      transaction.case_id
+                    )
+                  }
+                  title="View transaction"
+                >
+                  <ChevronRight size={17} />
+                </button>
+
+              </div>
+
+            ))}
 
           </div>
 
@@ -596,86 +600,157 @@ function Transactions() {
 
       </div>
 
-
-      {/* Transaction Details */}
+      {/* DETAILS MODAL */}
 
       {selectedTransaction && (
-
         <TransactionDetails
           caseId={selectedTransaction}
-          onClose={() =>
-            setSelectedTransaction(null)
-          }
+          onClose={() => setSelectedTransaction(null)}
+          onExecuted={fetchTransactions}
         />
-
       )}
-
     </>
-
   );
-
 }
-
-
-/* =========================================================
-   TRANSACTION DETAILS
-========================================================= */
 
 function TransactionDetails({
   caseId,
   onClose,
+  onExecuted,
 }) {
+  const [transaction, setTransaction] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [executing, setExecuting] = useState(false);
+  const [executionMessage, setExecutionMessage] = useState("");
+  const [executionError, setExecutionError] = useState("");
 
-  const [transaction, setTransaction] =
-    useState(null);
+  const fetchTransaction = async () => {
+    try {
+      setLoading(true);
+      setError("");
 
+      const response = await fetch(
+        `${API_URL}/transactions/${caseId}`
+      );
 
-  useEffect(() => {
-
-    const fetchTransaction = async () => {
-
-      try {
-
-        const response =
-          await fetch(
-            `${API_URL}/transactions/${caseId}`
-          );
-
-        const data = await response.json();
-
-        setTransaction(data);
-
-      } catch (error) {
-
-        console.error(error);
-
+      if (!response.ok) {
+        throw new Error("Failed to fetch transaction");
       }
 
-    };
+      const data = await response.json();
 
+      setTransaction(data);
+    } catch (err) {
+      console.error(err);
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchTransaction();
-
   }, [caseId]);
 
+  const executeRecovery = async () => {
+    if (!transaction) return;
 
-  if (!transaction) {
+    try {
+      setExecuting(true);
+      setExecutionMessage("");
+      setExecutionError("");
 
+      const response = await fetch(
+        `${API_URL}/recover/${transaction.case_id}`,
+        {
+          method: "POST",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Recovery execution failed"
+        );
+      }
+
+      setExecutionMessage(
+        `₹${Number(
+          data.amount_recovered || 0
+        ).toLocaleString()} recovered successfully`
+      );
+
+      // Fetch updated transaction
+      await fetchTransaction();
+
+      if (onExecuted) {
+        onExecuted();
+      }
+
+    } catch (err) {
+      console.error(err);
+      setExecutionError(err.message);
+    } finally {
+      setExecuting(false);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="modal-overlay">
         <div className="modal">
-          Loading transaction...
+          <div className="empty-state">
+            Loading transaction...
+          </div>
         </div>
       </div>
     );
-
   }
 
+  if (error || !transaction) {
+    return (
+      <div className="modal-overlay">
+        <div className="modal">
+
+          <div className="modal-header">
+            <div>
+              <p className="eyebrow">
+                TRANSACTION DETAILS
+              </p>
+
+              <h2>
+                {caseId}
+              </h2>
+            </div>
+
+            <button
+              className="modal-close"
+              onClick={onClose}
+            >
+              ×
+            </button>
+          </div>
+
+          <div className="error-message">
+            <XCircle size={18} />
+            <span>
+              {error || "Transaction not found"}
+            </span>
+          </div>
+
+        </div>
+      </div>
+    );
+  }
 
   return (
-
     <div className="modal-overlay">
 
       <div className="modal">
+
+        {/* HEADER */}
 
         <div className="modal-header">
 
@@ -700,6 +775,7 @@ function TransactionDetails({
 
         </div>
 
+        {/* DETAILS */}
 
         <div className="details-grid">
 
@@ -716,7 +792,7 @@ function TransactionDetails({
           <Detail
             label="Amount"
             value={`₹${Number(
-              transaction.amount
+              transaction.amount || 0
             ).toLocaleString()}`}
           />
 
@@ -738,7 +814,7 @@ function TransactionDetails({
           <Detail
             label="Customer Lifetime Value"
             value={`₹${Number(
-              transaction.customer_lifetime_value
+              transaction.customer_lifetime_value || 0
             ).toLocaleString()}`}
           />
 
@@ -755,13 +831,17 @@ function TransactionDetails({
           <Detail
             label="Recovery Probability"
             value={`${(
-              transaction.recovery_probability * 100
+              Number(
+                transaction.recovery_probability || 0
+              ) * 100
             ).toFixed(1)}%`}
           />
 
           <Detail
             label="Recommended Action"
-            value={transaction.recommended_action}
+            value={String(
+              transaction.recommended_action || "-"
+            ).replaceAll("_", " ")}
           />
 
           <Detail
@@ -771,6 +851,7 @@ function TransactionDetails({
 
         </div>
 
+        {/* AI DECISION */}
 
         <div className="decision-box">
 
@@ -779,11 +860,117 @@ function TransactionDetails({
           </h3>
 
           <p>
-            {transaction.policy_decision}
+            {transaction.policy_decision ||
+              "No policy decision available."}
           </p>
 
         </div>
 
+        {/* EXECUTION ERROR */}
+
+        {executionError && (
+          <div className="error-message">
+
+            <XCircle size={18} />
+
+            <span>
+              {executionError}
+            </span>
+
+          </div>
+        )}
+
+        {/* EXECUTION SUCCESS */}
+
+        {executionMessage && (
+          <div className="executed-box">
+
+            <CheckCircle size={20} />
+
+            <div>
+
+              <strong>
+                Recovery Executed Successfully
+              </strong>
+
+              <span>
+                {executionMessage}
+              </span>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* RECOVERY ACTION */}
+
+        {transaction.action_status === "RECOMMENDED" && (
+          <div className="recovery-action-box">
+
+            <div>
+
+              <span>
+                Recovery action available
+              </span>
+
+              <strong>
+                {String(
+                  transaction.recommended_action || ""
+                ).replaceAll("_", " ")}
+              </strong>
+
+            </div>
+
+            <button
+              className="execute-btn"
+              onClick={executeRecovery}
+              disabled={executing}
+            >
+
+              {executing ? (
+                <>
+                  <RefreshCw
+                    size={17}
+                    className="spin"
+                  />
+                  Executing...
+                </>
+              ) : (
+                <>
+                  <CheckCircle size={17} />
+                  Execute Recovery
+                </>
+              )}
+
+            </button>
+
+          </div>
+        )}
+
+        {/* ALREADY EXECUTED */}
+
+        {transaction.action_status === "EXECUTED" && (
+          <div className="executed-box">
+
+            <CheckCircle size={20} />
+
+            <div>
+
+              <strong>
+                Recovery Executed
+              </strong>
+
+              <span>
+                This recovery action has already
+                been completed successfully.
+              </span>
+
+            </div>
+
+          </div>
+        )}
+
+        {/* FOOTER */}
 
         <div className="modal-footer">
 
@@ -802,9 +989,7 @@ function TransactionDetails({
       </div>
 
     </div>
-
   );
-
 }
 
 
@@ -828,9 +1013,20 @@ function AIAnalysis() {
     risk_score: 0.25,
   });
 
-  const [result, setResult] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [result, setResult] =
+  useState(null);
+
+const [loading, setLoading] =
+  useState(false);
+
+const [executing, setExecuting] =
+  useState(false);
+
+const [executionResult, setExecutionResult] =
+  useState(null);
+
+const [error, setError] =
+  useState("");
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -857,6 +1053,7 @@ function AIAnalysis() {
 
     setLoading(true);
     setResult(null);
+    setExecutionResult(null);
     setError("");
 
     try {
@@ -884,6 +1081,53 @@ function AIAnalysis() {
       setLoading(false);
     }
   };
+
+    const executeRecovery = async () => {
+    if (!result?.transaction_id) {
+      return;
+    }
+
+    setExecuting(true);
+    setError("");
+    setExecutionResult(null);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/recover/${result.transaction_id}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Recovery execution failed"
+        );
+      }
+
+      setExecutionResult(data);
+
+      setResult((prev) => ({
+        ...prev,
+        decision: {
+          ...prev.decision,
+          should_execute: false,
+        },
+      }));
+
+    } catch (error) {
+      console.error(error);
+      setError(error.message);
+    } finally {
+      setExecuting(false);
+    }
+  };
+  
 
   const probability = result
     ? result.recovery_probability * 100
@@ -1218,6 +1462,53 @@ function AIAnalysis() {
                         transaction suitable for automated recovery.
                       </span>
                     </div>
+                    {result.decision?.should_execute && !executionResult && (
+  <button
+    className="execute-recovery-btn"
+    onClick={executeRecovery}
+    disabled={executing}
+  >
+    {executing ? (
+      <>
+        <RefreshCw size={18} className="spin" />
+        Executing Recovery...
+      </>
+    ) : (
+      <>
+        <CheckCircle size={18} />
+        Execute Recovery
+      </>
+    )}
+  </button>
+)}
+
+{executionResult && (
+  <div className="execution-success">
+    <div className="execution-success-icon">
+      <CheckCircle size={22} />
+    </div>
+
+    <div>
+      <strong>Recovery Executed Successfully</strong>
+
+      <p>
+        {executionResult.action} completed for{" "}
+        {executionResult.case_id}.
+      </p>
+
+      <div className="execution-amount">
+        Amount Recovered: ₹
+        {Number(
+          executionResult.amount_recovered || 0
+        ).toLocaleString()}
+      </div>
+
+      <div className="execution-status">
+        Status: {executionResult.status}
+      </div>
+    </div>
+  </div>
+)}
                   </>
                 ) : (
                   <>
@@ -1237,6 +1528,56 @@ function AIAnalysis() {
                 )}
 
               </div>
+              {result.decision?.should_execute && !executionResult && (
+  <button
+    className="execute-recovery-btn"
+    onClick={executeRecovery}
+    disabled={executing}
+  >
+    {executing ? (
+      <>
+        <RefreshCw
+          size={18}
+          className="spin"
+        />
+        Executing Recovery...
+      </>
+    ) : (
+      <>
+        <CheckCircle size={18} />
+        Execute Recovery
+      </>
+    )}
+  </button>
+)}
+
+{executionResult && (
+  <div className="execution-success">
+    <div className="execution-success-icon">
+      <CheckCircle size={22} />
+    </div>
+
+    <div>
+      <strong>Recovery Executed Successfully</strong>
+
+      <p>
+        {executionResult.action} completed for{" "}
+        {executionResult.case_id}.
+      </p>
+
+      <div className="execution-amount">
+        Amount Recovered: ₹
+        {Number(
+          executionResult.amount_recovered || 0
+        ).toLocaleString()}
+      </div>
+
+      <div className="execution-status">
+        Status: {executionResult.status}
+      </div>
+    </div>
+  </div>
+)}
 
               {/* ================= DECISION REASON ================= */}
 
@@ -1437,16 +1778,25 @@ function StatusBadge({
 
   }
 
-  return (
 
+  if (status === "EXECUTED") {
+
+    return (
+      <span className="status-badge executed">
+        <CheckCircle size={14} />
+        Executed
+      </span>
+    );
+
+  }
+
+
+  return (
     <span className="status-badge pending">
       <Clock size={14} />
       Pending
     </span>
-
   );
-
 }
-
 
 export default App;

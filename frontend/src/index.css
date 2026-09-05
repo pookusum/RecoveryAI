@@ -153,7 +153,7 @@ h1 {
 
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 18px;
   margin-bottom: 22px;
 }
@@ -338,17 +338,24 @@ footer {
 
 /* Responsive */
 
-@media (max-width: 1000px) {
+@media (max-width: 1100px) {
+
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .dashboard-grid {
-    grid-template-columns: 1fr;
+}
+
+@media (max-width: 850px) {
+
+  .stats-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
 }
 
 @media (max-width: 700px) {
+
   .sidebar {
     width: 70px;
     padding: 20px 10px;
@@ -386,10 +393,11 @@ footer {
   .overview-content {
     flex-direction: column;
   }
+
 }
 
 /* =========================================================
-   AI ANALYSIS - ENHANCED UI
+   AI ANALYSIS 
 ========================================================= */
 
 .analysis-layout {
@@ -520,9 +528,9 @@ footer {
   }
 }
 
-/* =========================================================
+/* 
    EMPTY AI RESULT
-========================================================= */
+ */
 
 .analysis-empty {
   min-height: 480px;

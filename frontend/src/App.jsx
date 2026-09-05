@@ -23,7 +23,7 @@ function App() {
   return (
     <div className="app">
 
-      {/* ================= SIDEBAR ================= */}
+      {/* SIDEBAR  */}
 
       <aside className="sidebar">
 
@@ -90,8 +90,6 @@ function App() {
 
       </aside>
 
-      {/* ================= MAIN ================= */}
-
       <main className="main">
 
         {activePage === "dashboard" && (
@@ -116,14 +114,16 @@ function App() {
 }
 
 
-/* =========================================================
-   DASHBOARD
-========================================================= */
+{/* DASHBOARD */}
 
 function Dashboard() {
 
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
+  const recoveryRate =
+  stats?.total_transaction_value > 0
+    ? (stats.total_amount_recovered / stats.total_transaction_value) * 100
+    : 0;
 
   const fetchStats = async () => {
 
@@ -168,6 +168,7 @@ function Dashboard() {
           <p className="eyebrow">
             AI REVENUE RECOVERY
           </p>
+     
 
           <h1>
             Recovery Dashboard
@@ -191,35 +192,33 @@ function Dashboard() {
 
 
       {/* Stats */}
+      
+      <StatCard
+  title="Total Transactions"
+  value={stats?.total_transactions ?? 0}
+  icon={<Activity size={20} />}
+  loading={loading}
+/>
 
-      <section className="stats-grid">
+<StatCard
+  title="Transaction Value"
+  value={`₹${(
+    stats?.total_transaction_value ?? 0
+  ).toLocaleString()}`}
+  icon={<ArrowUpRight size={20} />}
+  loading={loading}
+/>
 
-        <StatCard
-          title="Total Transactions"
-          value={stats?.total_transactions ?? 0}
-          icon={<Activity size={20} />}
-          loading={loading}
-        />
+<StatCard
+  title="Avg. Recovery Probability"
+  value={`${(
+    (stats?.average_recovery_probability ?? 0) * 100
+  ).toFixed(1)}%`}
+  icon={<Brain size={20} />}
+  loading={loading}
+/>
 
-        <StatCard
-          title="Transaction Value"
-          value={`₹${(
-            stats?.total_transaction_value ?? 0
-          ).toLocaleString()}`}
-          icon={<ArrowUpRight size={20} />}
-          loading={loading}
-        />
-
-        <StatCard
-          title="Avg. Recovery Probability"
-          value={`${(
-            (stats?.average_recovery_probability ?? 0) * 100
-          ).toFixed(1)}%`}
-          icon={<Brain size={20} />}
-          loading={loading}
-        />
-
-        <StatCard
+<StatCard
   title="Recovered Revenue"
   value={`₹${(
     stats?.total_amount_recovered ?? 0
@@ -228,9 +227,12 @@ function Dashboard() {
   loading={loading}
 />
 
-      </section>
-
-
+<StatCard
+  title="Recovery Rate"
+  value={`${recoveryRate.toFixed(1)}%`}
+  icon={<CheckCircle size={20} />}
+  loading={loading}
+/>
       {/* Main Panels */}
 
       <section className="dashboard-grid">
@@ -261,16 +263,12 @@ function Dashboard() {
               <div>
 
                 <strong>
-                  {(
-                    (stats?.average_recovery_probability ?? 0) *
-                    100
-                  ).toFixed(0)}
-                  %
-                </strong>
+  {recoveryRate.toFixed(0)}%
+</strong>
 
-                <span>
-                  Avg. Recovery
-                </span>
+<span>
+  Revenue Recovered
+</span>
 
               </div>
 
@@ -282,7 +280,7 @@ function Dashboard() {
               <div className="metric-row">
 
                 <span>
-                  High Recovery Cases
+                  High Recovery Opportunities
                 </span>
 
                 <strong>
@@ -387,9 +385,9 @@ function Dashboard() {
 }
 
 
-/* =========================================================
+/*
    TRANSACTIONS
-========================================================= */
+ */
 
 function Transactions() {
   const [transactions, setTransactions] = useState([]);
@@ -863,8 +861,6 @@ function TransactionDetails({
 
         </div>
 
-        {/* AI DECISION */}
-
         <div className="decision-box">
 
           <h3>
@@ -877,9 +873,6 @@ function TransactionDetails({
           </p>
 
         </div>
-
-        {/* EXECUTION ERROR */}
-
         {executionError && (
           <div className="error-message">
 
@@ -891,9 +884,6 @@ function TransactionDetails({
 
           </div>
         )}
-
-        {/* EXECUTION SUCCESS */}
-
         {executionMessage && (
           <div className="executed-box">
 
@@ -959,8 +949,6 @@ function TransactionDetails({
           </div>
         )}
 
-        {/* ALREADY EXECUTED */}
-
         {transaction.action_status === "EXECUTED" && (
           <div className="executed-box">
 
@@ -1005,9 +993,8 @@ function TransactionDetails({
 }
 
 
-/* =========================================================
-   AI ANALYSIS
-========================================================= */
+{/*
+   AI ANALYSIS */}
 
 function AIAnalysis() {
   const [form, setForm] = useState({
@@ -1153,7 +1140,7 @@ setResult((prev) => ({
 
   return (
     <>
-      {/* ================= PAGE HEADER ================= */}
+    
 
       <header className="topbar">
         <div>
@@ -1168,11 +1155,9 @@ setResult((prev) => ({
         </div>
       </header>
 
-      {/* ================= ANALYSIS LAYOUT ================= */}
 
       <div className="analysis-layout">
 
-        {/* ================= INPUT PANEL ================= */}
 
         <div className="panel analysis-form-panel">
 
@@ -1347,7 +1332,7 @@ setResult((prev) => ({
 
         </div>
 
-        {/* ================= AI RESULT PANEL ================= */}
+        {/* AI RESULT PANEL  */}
 
         <div className="panel result-panel">
 
@@ -1391,7 +1376,7 @@ setResult((prev) => ({
 
             <div className="analysis-result">
 
-              {/* ================= PROBABILITY ================= */}
+              {/* PROBABILITY  */}
 
               <div className="probability-card">
 
@@ -1428,9 +1413,6 @@ setResult((prev) => ({
                 </div>
 
               </div>
-
-              {/* ================= ACTION ================= */}
-
               <div className="decision-highlight">
 
                 <div className="decision-icon">
@@ -1451,9 +1433,8 @@ setResult((prev) => ({
 
               </div>
 
-              {/* ================= EXECUTION STATUS ================= */}
 
-              {/* ================= EXECUTION STATUS ================= */}
+              {/*  EXECUTION STATUS  */}
 
 <div
   className={
@@ -1546,7 +1527,7 @@ setResult((prev) => ({
   </div>
 )}
 
-              {/* ================= DECISION REASON ================= */}
+              {/*  DECISION REASON  */}
 
               <div className="reason-box">
 
@@ -1561,8 +1542,6 @@ setResult((prev) => ({
                 </p>
 
               </div>
-
-              {/* ================= TRANSACTION SUMMARY ================= */}
 
               <div className="result-summary">
 
@@ -1596,7 +1575,7 @@ setResult((prev) => ({
 
               </div>
 
-              {/* ================= AUDIT ================= */}
+              {/*AUDIT */}
 
               <div className="audit-box">
 
@@ -1632,10 +1611,6 @@ setResult((prev) => ({
     </>
   );
 }
-
-/* =========================================================
-   REUSABLE COMPONENTS
-========================================================= */
 
 function StatCard({
   title,
@@ -1728,9 +1703,7 @@ function Detail({
   );
 
 }
-/* =========================================================
-   AUDIT LOG
-========================================================= */
+{/* AUDIT LOG*/}
 
 function AuditLog() {
   const [logs, setLogs] = useState([]);

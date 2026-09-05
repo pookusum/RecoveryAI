@@ -416,3 +416,37 @@ def get_stats(
 Base.metadata.create_all(
     bind=engine
 )
+
+# Audit Log
+
+@app.get("/audit-log")
+def get_audit_log(
+    db: Session = Depends(get_db)
+):
+
+    cases = (
+        db.query(models.RecoveryCase)
+        .order_by(
+            models.RecoveryCase.created_at.desc()
+        )
+        .all()
+    )
+
+    return {
+        "total": len(cases),
+        "audit_log": [
+            {
+                "case_id": case.case_id,
+                "customer_id": case.customer_id,
+                "amount": case.amount,
+                "recovery_probability": case.recovery_probability,
+                "recommended_action": case.recommended_action,
+                "policy_decision": case.policy_decision,
+                "action_status": case.action_status,
+                "amount_recovered": case.amount_recovered or 0,
+                "created_at": case.created_at,
+                "resolved_at": case.resolved_at
+            }
+            for case in cases
+        ]
+    }

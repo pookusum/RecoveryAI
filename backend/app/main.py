@@ -7,8 +7,6 @@ from .database import Base, engine, get_db
 from . import models
 from services.recovery_agent import RecoveryAgent
 
-# FastAPI Application
-
 
 app = FastAPI(
     title="RecoverAI API",
@@ -160,7 +158,7 @@ def analyze_transaction(
             )
             .first()
         )
-        # Create or update database record
+
 
         if existing_case:
 

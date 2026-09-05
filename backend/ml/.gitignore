@@ -4,18 +4,19 @@ __pycache__/
 *.pyo
 
 # Virtual environments
-.venv/
 venv/
+.venv/
+env/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
 
 # Database
 *.db
+*.sqlite
+*.sqlite3
 
-# Environment variables
-.env
-
-# IDE
-.vscode/
-
-# OS
-.DS_Store
-Thumbs.db
+# Python logs
+*.log
